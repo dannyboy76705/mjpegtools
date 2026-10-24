@@ -1,0 +1,106 @@
+.TH MJPEGSTORE 1 "October 2026" "mjpegtools" "User Commands"
+.SH NAME
+mjpegstore \- store video as JPEG pictures and serve it back as Matroska MJPEG
+.SH SYNOPSIS
+.B mjpegstore
+\-i FILE|\- [\-j QUALITY] [\-R N] [\-y] [\-p] CLIPDIR
+.br
+.B mjpegstore
+\-s [\-f FILE] CLIPDIR
+.br
+.B mjpegstore
+\-x FILE.mkv CLIPDIR
+.br
+.B mjpegstore
+[\-f FILE] DIR [DIR...]
+.br
+.B mjpegstore
+\-c [\-E] SETDIR
+.SH DESCRIPTION
+Stores video as JPEG pictures and serves it back as MJPEG in Matroska. Every frame is a baseline JPEG made from the y4m planes as they are (no colour conversion), with the same quantization and standard Huffman tables in every frame and a restart marker after every block of 16x16 pixels. A piece of the picture that does not change from one frame to the next then comes out as the same bytes, aligned the same way, so a compressor that looks back over the set (zstd, xz) can match it. JPEG is lossy: the quality is in specs.txt.
+.PP
+A set is a folder that holds specs.txt (resolution, sampling, chromasiting, framerate, bitdepth, aspect, quality, range) and one subdirectory per clip. A clip holds its pictures in bucket folders of 5000 frames: b00000/frame\-0000001.jpg and so on. Only progressive footage is stored: an interlaced y4m stream is refused, so deinterlace it first (to 60p, ideally with a motion\-aware deinterlacer).
+.PP
+With one or more directories and no mode option, the files are listed, in natural filename order (numbers compare as numbers), with no hashing and no reading of the files beyond the directory scan. The list begins with the set's specs.txt, so an archive built from it carries it. A directory that holds only subdirectories is refused: name or glob the clips. \-f never appends: if the file exists you are asked whether to overwrite it, and the request is refused when standard input is not a terminal.
+.SH OPTIONS
+.TP
+.B \-i SRC
+Ingest: read a yuv4mpeg (y4m) stream from SRC (a file, or \- for standard input) and write each frame as a JPEG file into the new or empty clip directory CLIPDIR. specs.txt in its parent is created from the stream header if it is absent; if it is present it must match, otherwise nothing is written. 8\-bit streams only. The frames are encoded on \-t threads.
+.TP
+.B \-R N
+With \-i: a restart marker after every N MCUs (an MCU is 16x16 pixels for 4:2:0, 8x8 for 4:4:4). Default 1, the smallest pieces, which gave the smallest archives; 0 means one marker per row of blocks. Use the same \-R for every clip of a set; it is not kept in specs.txt.
+.TP
+.B \-y
+With \-i making a new set: use the settings detected from the stream header without showing them or asking. (The question is read from the terminal, not from standard input.)
+.TP
+.B \-j N
+JPEG quality, 1 to 100, for a specs.txt that \-i creates (default 90). Ignored when specs.txt exists: its quality line is used, so every frame in a set matches.
+.TP
+.B \-s
+Serve: write CLIPDIR as a Matroska (.mkv) stream with one V_MJPEG track on standard output, or to \-f FILE, using specs.txt from its parent directory. The pictures are copied in untouched, in filename order. Sizes and seek positions are exact, so a saved file seeks normally.
+.TP
+.B \-x FILE
+Export: write CLIPDIR to FILE as a seekable Matroska file, the same as \-s \-f FILE. Asks before overwriting an existing file.
+.TP
+.B \-c
+Check: look for specs.txt in SETDIR. If it is missing, ask for the values and create it; if it is present, list the specs. Nothing is scanned, listed or served.
+.TP
+.B \-E
+With \-c: edit specs.txt. Each value is shown with its valid choices (pick a number or type a value; Enter keeps it), the changes are listed, and nothing is written until you confirm. Needs a terminal.
+.TP
+.B \-t N
+Worker threads for \-i and \-s. The default is the number of CPUs.
+.TP
+.B \-f PATH
+Write the file list (or, with \-s, the Matroska stream) to PATH instead of standard output.
+.TP
+.B \-p
+With \-i reading standard input (\-): show a running count of frames read, so a slow upstream does not look like a hang. (A file source already has a progress bar.) \-q wins.
+.TP
+.B \-q
+Quiet: no progress messages on standard error.
+.TP
+.B \-h
+Print help.
+.SH SPECS.TXT
+One key=value per line; blank lines and lines starting with # are ignored.
+.TP
+.B resolution=WIDTHxHEIGHT
+Each side 1 to 65535.
+.TP
+.B sampling=420|422|444
+Chroma subsampling: 4:2:0 (half width and height), 4:2:2 (half width) or 4:4:4 (full).
+.TP
+.B chromasiting=jpeg|mpeg2|paldv
+4:2:0 only. jpeg is centred (JPEG, MPEG\-1, most web video), mpeg2 is left\-aligned (most DVD sources), paldv is PAL DV.
+.TP
+.B framerate=N:D
+An exact fraction, such as 24000:1001 (23.976 fps), 24:1, 25:1, 30000:1001, 30:1, 50:1, 60000:1001 or 60:1. Decimals are refused.
+.TP
+.B aspect=N:M
+The pixel aspect ratio: 1:1 (square), 10:11 (NTSC 4:3), 40:33 (NTSC 16:9), 12:11 (PAL 4:3), 16:11 (PAL 16:9), or any other ratio.
+.TP
+.B range=limited|full
+limited is 16 to 235 (normal video), full is 0 to 255.
+.TP
+.B bitdepth=8
+The only value today.
+.TP
+.B quality=1..100
+JPEG quality (default 90). Keep it the same for every clip of a set.
+.SH EXAMPLES
+.nf
+.RS
+ffmpeg \-hide_banner \-loglevel quiet \-nostdin \-i ep3.mkv \-vf scale=720:480 \-f yuv4mpegpipe \- | mjpegstore \-i \- \-p SET/ep3
+mjpegstore \-i ep1.y4m SET/ep1
+mjpegstore \-x ep1.mkv SET/ep1
+mjpegstore SET/ep1 SET/ep2 > list.txt
+.RE
+.fi
+.sp
+.SH AUTHOR
+Daniel Lee Witzel. MIT license (see the LICENSE file shipped with the source).
+.SH SEE ALSO
+.BR mjpegmount (1),
+.BR sortof\-palscore (1),
+.BR zfrag (1)

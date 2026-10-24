@@ -1,0 +1,28 @@
+.TH MJPEGMOUNT 1 "October 2026" "mjpegtools" "User Commands"
+.SH NAME
+mjpegmount \- mount an mjpegstore set as seekable .mkv files (FUSE)
+.SH SYNOPSIS
+.B mjpegmount
+[\-f] [\-d] [\-o OPTION,...] SETDIR MOUNTPOINT
+.SH DESCRIPTION
+Mounts an mjpegstore set read\-only. Every clip in SETDIR (a subdirectory of JPEG pictures made by mjpegstore \-i) appears as CLIP.mkv: the same bytes mjpegstore \-s writes (one V_MJPEG track in Matroska), except for the writing\-application name in the header, but as a seekable file, so a player, encoder or editor can open it without anything being exported first.
+.PP
+Every size in the file follows from the sizes of the picture files, so a read at any offset maps onto a few header bytes and the picture files behind them. Nothing is decoded, re\-encoded or scanned, and only the pictures a read touches are opened. The picture files can live anywhere, on a plain disk or on another mount.
+.PP
+SETDIR may also be a single clip directory (specs.txt in its parent). A valid specs.txt is required; it supplies the frame rate and size and cannot be generated on a read\-only mount. Progressive sets only. Unmount with fusermount3 \-u MOUNTPOINT. Needs libfuse3.
+.SH OPTIONS
+.TP
+.B \-f
+Stay in the foreground; errors are printed to the terminal.
+.TP
+.B \-d
+Foreground, plus libfuse debug output.
+.TP
+.B \-o OPT,...
+Mount options passed to libfuse, such as allow_other.
+.SH AUTHOR
+Daniel Lee Witzel. MIT license (see the LICENSE file shipped with the source).
+.SH SEE ALSO
+.BR mjpegstore (1),
+.BR zfrag (1),
+.BR fusermount3 (1)
