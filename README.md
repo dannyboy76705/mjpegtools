@@ -1,4 +1,4 @@
-# mjpegtools
+# mjpegsuite
 
 Two small programs for keeping video as a folder of JPEG pictures and getting it back as a seekable `.mkv`.
 

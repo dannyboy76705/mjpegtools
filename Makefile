@@ -1,4 +1,4 @@
-# mjpegtools: mjpegstore, mjpegmount
+# mjpegsuite: mjpegstore, mjpegmount
 # Needs: gcc, libjpeg (libjpeg-dev), libfuse3 + pkg-config (mjpegmount only).
 #   Debian/Ubuntu: apt install build-essential libjpeg-dev libfuse3-dev pkg-config
 CC      ?= gcc
