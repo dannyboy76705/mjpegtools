@@ -117,6 +117,7 @@ These come from tests on anime footage while the tools were built:
 ## TODO
 
 * **10-bit support.** Today only 8-bit streams are stored. 10-bit is planned for the Debian forky stable release, whose libjpeg-turbo (3.1.3) has the higher-bit-depth JPEG support it needs.
+* **lossless support** same thing. waiting on forky. will implement as 1 row per restart marker which will save a bit on scrolling footage as the line moves but is usually the same 
 
 ## Questions and answers
 
